@@ -113,4 +113,4 @@ public class Volitile {    //java虚拟机和java内存模型
 //wait:notify才能唤醒。没有在synchronized修饰的代码块中使用时运行时会抛出IllegalMonitorStateException的异常
 //yield:执行yield()的线程有可能在进入到可执行状态后马上又被执行,yield 方法只能使同优先级或更高优先级的线程有执行的机会(不阻塞，重新进入就绪)
 //join:等待异步线程执行完结果之后才能继续运行的场景
-//  wait notify notifyAll 必须在synchronized中使用
+//wait notify notifyAll 必须在synchronized中使用

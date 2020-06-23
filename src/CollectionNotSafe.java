@@ -24,7 +24,7 @@ public class CollectionNotSafe {
      */
     //3.3  CopyOnWriteArrayList的add
     /*public boolean add(E e) {
-        final ReentrantLock lock = this.lock; //线程加锁其余线程不可读
+        final ReentrantLock . = this.lock; //线程加锁其余线程不可读
         lock.lock();
         try {
             Object[] elements = getArray();
