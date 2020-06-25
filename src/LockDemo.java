@@ -2,6 +2,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -40,6 +42,10 @@ public class LockDemo {
 
     //锁的细粒度和灵活度：很明显ReenTrantLock优于Synchronized，官方推荐使用Synchronized
 
+
+    //锁的升级
+    //synchronized wait notify  JVM层面  不可中断  非公平锁                 底层monitor
+    //lock await                API层面  可中断    精确唤醒
     /**
      * 2、可重入锁（又名递归锁）
      *     指的是统一线程外层函数获得锁之后，内存递归函数仍然能获取该锁的代码
@@ -187,6 +193,98 @@ public class LockDemo {
                     demo.get(tempInt + "");
                 }, "Thread-" + i).start();
             }
+        }
+    }
+
+    //用conditon精确等待唤醒
+    //锁的升级
+    //synchronized wait notify  JVM层面  不可中断  非公平锁                 底层monitor
+    //lock await                API层面  可中断    精确唤醒
+    static class ReentrantAndSynchronizedLock {
+        //更加细腻的使用，且可中断
+        private Lock lock = new ReentrantLock();
+        private Condition c1 = lock.newCondition();
+        private Condition c2 = lock.newCondition();
+        private Condition c3 = lock.newCondition();
+        private int num = 1;
+        public void print5() {
+            try {
+                lock.lock();
+                //1、判断
+                while (num != 1) {
+                    c1.await();//等待
+                }
+                //2、干活
+                for (int i = 0; i < 5; i++) {
+                    System.out.println(Thread.currentThread().getName() + "\t" + (i + 1));
+                }
+                //3、通知
+                num = 2;
+                c2.signal();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+                lock.unlock();
+            }
+        }
+        public void print10() {
+            try {
+                lock.lock();
+                //1、判断
+                while (num != 2) {
+                    c2.await();//等待
+                }
+                //2、干活
+                for (int i = 0; i < 10; i++) {
+                    System.out.println(Thread.currentThread().getName() + "\t" + (i + 1));
+                }
+                //3、通知
+                num = 3;
+                c3.signal();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+                lock.unlock();
+            }
+        }
+        public void print15() {
+            try {
+                lock.lock();
+                //1、判断
+                while (num != 3) {
+                    c3.await();//等待
+                }
+                //2、干活
+                for (int i = 0; i < 15; i++) {
+                    System.out.println(Thread.currentThread().getName() + "\t" + (i + 1));
+                }
+                //3、通知
+                num = 1;
+                c1.signal();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+                lock.unlock();
+            }
+        }
+
+        public static void main(String[] args) {
+            ReentrantAndSynchronizedLock demo = new ReentrantAndSynchronizedLock();
+            new Thread(()->{
+                for (int i = 0; i <10 ; i++) {
+                    demo.print5();
+                }
+            },"Thread-A").start();
+            new Thread(()->{
+                for (int i = 0; i <10 ; i++) {
+                    demo.print10();
+                }
+            },"Thread-B").start();
+            new Thread(()->{
+                for (int i = 0; i <10 ; i++) {
+                    demo.print15();
+                }
+            },"Thread-C").start();
         }
     }
 }
