@@ -9,7 +9,7 @@ public class Volitile {    //java虚拟机和java内存模型
     //3、禁止指令重排
 
 
-    //1、可见性
+    //1、可见性742411332@qq.com
     static class Volitile01{
         volatile int num = 0;//如果不加volatile则跳不出while循环，因为num需要对所有线程共享可见，一旦改变则需要立刻通知其他线程
 

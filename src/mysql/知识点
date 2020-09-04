@@ -1,0 +1,147 @@
+**索引的数据结构：二叉树、红黑树、Hash表、B-Tree
+
+mysql不用二叉树的是因为，容易单增长形成链表;
+红黑树是二叉树的升级优化，可以自动调整平衡，是一种平衡二叉树，性能查找更快；
+但是红黑树再大量数据存入后树的高度会造成查找性能低下，
+所以采用B-Tree在一个节点上存储更多数据，这样子就降低了树的高度
+可是mysql真正使用的是对B-Tree进行改进的B+Tree(B-Tree的变种)，
+非叶子节点不存储data，只存储索引，因为data会有冗余，这样可以存放更多索引，
+叶子节点存储索引和data，
+叶子节点之间用指针连接，提高区间访问的性能。
+
+**小知识点：内存一次磁盘I/O大概为16KB，mysql的设计一个索引存储占用4B,一层树存储为4B*1170=16KB，这样的设计使得在索引查找时候可以用最少的I/O次数
+
+**MyISAM存储引擎一个表对应三个文件：.frm:表结构，.MYD:行数据,.MYI:索引-----------(非聚集索引)  (性能优先)  (行锁)
+**InnoDB存储引擎一个表对应两个文件：.frm:表结构，.ibd:数据和索引-----------------(聚集索引)    (事务优先)  (表锁)
+
+
+###索引优化
+id 编号
+select_type 查询类型
+table 表
+type 类型
+possible_keys 可能用到索引
+key 实际使用的索引
+key_len 实际使用索引的长度
+ref 表之间的引用
+rows 通过索引查询到的数据量
+Extra 额外的信息
+
+优化type:
+        system>const>eq_ref>ref>range>index>all。优化的前提是要有索引
+        期中system和const是理想的情况。实际能达到ref>range
+        system：只有一条数据的主查询
+        const:仅仅能查到一条数据的sql，用于primaryKey或uniqueKey（查询类型与索引类型有关）
+        eq_ref:唯一性索引，对于每个索引键的查询，返回匹配唯一行数据（有且只有有个）
+        ref:非唯一索引，对于每个索引键的查询，返回匹配的所有行（允许有0个或者多个）
+        range:检索指定范围的行，where后面的是一个范围查询，（in有时候会失效）
+        index:全部索引
+        all:全部数据
+rows:被索引优化查询的数据个数（实际通过索引而查询到的数据个数）
+
+extra: (1): using filesort:性能消耗大，需要”额外“的一次排序，常见于order by 语句中
+       （例如：select * from table where a1='' order by a2;
+        a2和a1，排序和查找不是统一字段就需要额外查询再排序
+       解决办法：将a1和a2建立复合索引，并且使用时候遵循最佳左前缀原则）
+       (2):using temporary:性能损耗较大，用到了临时表。一般出现于group by语句中
+       （例如：select a1 from table where a1='' group by a2;
+        查的是a1，却是再用a2分组，就会出现临时表）
+       (3):using index:性能提升；索引覆盖（覆盖索引）。原因：不回表，直接读取索引
+        像 select a1,a3 from table where a1='' and a3='';
+        index(a1,a2)，a3不是索引，这样子不是覆盖索引。只能是using where
+        使用到索引覆盖（using index）的体现：（a:没有where索引只出现在key中；b：有where索引在key和possible_keys中均出现）
+       (4):using where :需要回原表查询
+       (5):impossible where :where字句永远为false
+       (6):using join buffer:mysql引擎优化给sql加了缓存（一般是sql写太烂）
+============================================================================
+索引失效例子：select a1,a2,a3,a4 from table where a1=1,a2=2,a4=4 order by a3 。
+复合索引（a1,a2,a3,a4），这个语句会导致a4索引失效，所以查询时候不仅using index 还要using where回表查询a4
+复合索引如果左边失效，右边跟着失效
+
+二表优化：小表驱动大表（小表.id=大表.id）
+        左外链接，左表使用频繁，给左表加索引。反之给右表加索引
+三表优化：小表驱动大表（小表.id=大表.id）
+
+避免索引失效的一些原则：
+        a：复合索引，不要跨列或无序使用（最佳左前缀原则）
+        b：尽量使用全索引匹配
+        c：不要在索引上进行任何操作（计算、函数、类型转换），否则索引失效
+        d：复合索引不能使用不等于（！= <>）或is null(is not null),否则自身及右侧索引全部失效
+--SQL优化是一种概率层面的的优化。复合索引如果有> or <，自身及右侧索引全失效，但是这是个概率问题，有时候又不一定失效。
+        所以我们学习索引优化，是一个大部分情况适用得结论，但由于SQL优化器等原因，该结论不是100%正确。
+        一般而言，范围查询> < in 会造成索引失效
+--补救：尽量使用索引覆盖。
+
+--like尽量以“常量”开头，不要以'%'开头，否则索引失效。如果必须使用like'%x%'进行查询，
+    可以使用索引覆盖挽救一部分
+--尽量不要使用类型转换（显式，隐式），否则索引失效
+
+--尽量不要使用or，否则索引失效
+
+--exsits和in：主查询的数据集大用exists
+
+--order by优化
+    using filesort有两种算法：双路排序、单路排序（根据IO次数）
+    如果max_length_for_sort_data值太低，则mysql会自动从单路->双路
+    提高order by查询的策略：
+    a:选择使用单路、双路；调整buffer的容量大小；
+    b:复合索引 不要跨列使用，避免using filesort
+    c:保证全部的排序字段 排序的一致性 （都是升序或降序）
+--慢查询：慢查询日志默认关闭，建议开发调优开启，部署关闭；
+    开关参数：show variables like '%slow_query_log%' set global slow_query_log=1;设置后立即生效
+    阀值参数：show variables like '%long_query_time%' set global long_query_time=5;设置后登录重新生效
+    查找慢查询：
+        a:show global status like '%slow_queries%'（以可直接去查看慢查询日志文件）
+        b:通过mysqldumpslow --help
+            s:排序方式
+            r:逆序
+            l:锁定时间
+            g:正则匹配模式
+            --获取放回记录组最多的3个sql
+                mysqldumslow -s r -t 3 /var/slow.log
+            --获取访问次数最多的3个sql
+                mysqldumslow -s c -t 3 /var/slow.log
+            --按照时间排序，前10条包含left join查询的sql
+                mysqldumslow -s t -t 10 -g "left join " /var/slow.log
+
+--分析海量数据：
+    a:profiles
+        show profiles;默认关闭
+        show variables like '%profiling%'；
+        set profiling=on;
+        show profiles ;打开之后记录全部sql查询语句所花费的时间；缺点是不够精确
+    b:精确分析：sql诊断
+        show profile all for query 上一步查询的QueryId
+        show profile cpu,block io for query 上一步查询的QueryId
+    c:全局查询日志：记录开启之后的全部sql语句（仅在开发，调优过程中建议开启）
+        show variables like '%general_log%'
+        set general_log =1;开启全局日志
+        set global log_output='table';set后，会将所有sql记录至mysql.general_log表中
+        set global general_log_file='path/xx.log';存到文件中
+--锁机制：
+    a:操作类型：
+        读锁（共享锁）
+        写锁（互斥锁）如果事务T对数据A加上排他锁后，则其他事务不能再对A加任任何类型的封锁。获准排他锁的事务既能读数据，又能修改数据。
+        事务可以通过以下语句给sql加共享锁和排他锁：
+        共享锁：select …… lock in share mode;
+        排他锁：select …… for update;
+    b:操作范围：
+        表锁：如MySIAM存储引擎，开销小，加锁快，无死锁，但范围大，容易发生锁冲突，并发度低
+        行锁：如InoDB开销大，加锁慢，容易死锁，并发度高
+        页锁：
+--行锁的注意事项：
+    a:没有索引，行锁转为表锁
+    b:索引列发生类型变化则索引失效。update table set name ='aiX' where name =4;
+    此处where后面发生类型强制转换，导致索引失效，此次操作回从行锁转为表锁。
+    c:行锁的一种特殊情况：
+        间隙锁：值在范围内，但却不存在，意思就是这个不存在的那一行在另一会话未commit之前无法插入
+
+--行锁分析：
+    a:  show status like '%innodb_row_lock%';
+        Innodb_row_lock_current_waits;当前正在等待的锁的数量
+        Innodb_row_lock_time:等待总时长。从系统启动到现在，一共等待的时间
+        Innodb_row_lock_time_avg:平均等待时长
+        Innodb_row_lock_time_max:最大等待时长
+        Innodb_row_lock_waits：等待次数
+--查询行锁
+    select * from table for update;

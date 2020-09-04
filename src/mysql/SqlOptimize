@@ -1,0 +1,20 @@
+Sql优化总节：
+1、查看条件有没有使用到索引
+2、杜绝条件的等号=左边施加函数
+3、规避使用全模糊
+4、多列索引，有没有用到前导列[例如:index(col1,col2) where col2=222  这种情况是无法走索引的]
+5、尽量规避回表。意思就是避免返回非索引字段
+6、尽量count(最优index) ，count(*)还会有一个判断哪个索引最快的过程
+7、使用stop机制，limit 1 找到第一行后就停止
+8、查看order by字段是否走索引
+9、联表时候小表驱动大表
+10、避免子查询，用连表代替
+11、避免隐式转换，（例如：字段事字符类型，就不要传数字类型）
+12、如果在在分组的时候不需要排序，最好关掉排序命令：order by null
+13、优化分页查询：先在索引上分页再回表[ select a.last_name , a.first_name from user a inner join (select id from user order by id limit 2000,20) b on a.id=b.id;]
+14、exists和in的区别：
+    i: select * from t_table exists (sql) 会先执行select * from t_table 再执行子查询，适用于主表数据小，子查询的表数据量大有索引的情况
+    ii:in 是把内外表作hash连接，而exists是对外表做loop循环。
+15、not exists和not in的区别：
+    i:not in查询中返回的任意一条记录含有空值，则查询将不返回任何记录,所以尽量不要使用。并且它不会走索引
+    ii:not exists A表比B表数据明显小的，就可以用这个
