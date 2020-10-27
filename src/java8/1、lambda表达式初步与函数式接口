@@ -1,0 +1,6 @@
+1、FunctionalInterface注解定义函数式接口，如果不满足函数式则编译器报错
+（函数式接口：只有一个方法得接口）
+如果一个接口没有打该注解，却符合这个标准也会判定为函数式接口
+Note that instances of functional interfaces can be created with
+lambda expressions, method references, or constructor references.
+lambda创建、引用方法创建、引用构造方法创建
