@@ -4,3 +4,8 @@
 Note that instances of functional interfaces can be created with
 lambda expressions, method references, or constructor references.
 lambda创建、引用方法创建、引用构造方法创建
+
+传递行为的三种方式：
+Supplier =====> T get();
+Consumer =====> void accept(T t);
+Function =====> R apply(T t);

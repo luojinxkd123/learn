@@ -1,10 +1,8 @@
 package java8;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author:luojin
@@ -31,6 +29,14 @@ public class Test<T> {
         objects.add(Optional.empty());
         objects.stream().forEach(x -> x.ifPresent(System.out::print));
         objects.stream().filter(Objects::isNull);
-
+        objects.sort(new Comparator<Optional<String>>() {
+            @Override
+            public int compare(Optional<String> o1, Optional<String> o2) {
+                return 0;
+            }
+        });
+        objects.stream().distinct().collect(ArrayList::new, List::add, (list1, list2) -> list1.addAll(list2));
+        objects.stream().collect(Collectors.toList());
+        //objects.stream().collect(Collectors.joining());
     }
 }
