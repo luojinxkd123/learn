@@ -6,6 +6,7 @@ package mq;
  * @since: 2020-11-16 14:22
  */
 public class Kafka {
+    //zk端口2181，kk端口9092
     /**
      * kafka是一个分布式的基于发布/订阅的消息队列，主要应用于大数据实时处理领域
      * 异步，缓冲,削峰,解耦,可恢复性,高可用，高容错
@@ -65,5 +66,12 @@ public class Kafka {
      *  <PID,partition，SeqNum>，相同主键进来会只持久化一条。
      *  但是，Pid重启会改变，不同的Partition有不同的主键，所以幂等性无法保证
      *  跨会话跨分区的Exactly Once
+     *
+     *  ====kafka消费者====
+     *  1、采用pull模式，速率由消费者决定。如果broker没有数据，则陷入循环
+     *  2、分区分配策略：
+     *      1）、轮询(round-robin):按照组划分
+     *      2）、范围(range):按照主题划分
+     *  3、offset的维护
      */
 }
