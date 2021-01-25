@@ -1,0 +1,22 @@
+一、注册中心：
+组件名         语言     CAP    健康检查     对外暴露接口   SpringCloud集成
+eureka        java     AP    可配支持      HTTP          已集成
+consul        go       CP    支持         HTTP/DNS      已集成
+zookeeper     java     CP    支持         客户端         已集成
+二、服务调用：
+1、ribbon：消费方集成负载均衡
+2、feign
+3、OpenFeign
+
+干货总结：hystrix熔断时间>(ribbon.ReadTimeout + ribbon.ConnectTimeout) * 2
+
+4、Hystrix
+   1)、服务降级：fallback
+        触发方式：异常、超时、熔断触发降级、线程池/信号量打满
+   2)、服务熔断：用于应对雪崩效应的微服务链路保护机制，熔断后当检测到正常，恢复调用链路
+        调用失败到一定阈值，缺省是5秒内20次调用失败，就会启动熔断机制。使用@HystrixCommand
+        涉及到的三个重要参数：
+            快照时间窗口-默认10秒
+            请求总数阈值-默认20次
+            错误百分比阈值-默认50%
+   3)、服务限流

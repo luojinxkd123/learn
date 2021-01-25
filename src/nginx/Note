@@ -1,0 +1,21 @@
+正向代理：
+client---->proxy->internet
+反向代理：
+internet---->proxy-->servers
+
+反向代理的配置方法及相关的坑：
+server {
+    listen       8091;
+    server_name  hahaha.com;
+
+    location /predict/ {
+        proxy_pass http://localhost:8081/;
+        index  index.html index.htm;
+    }
+}
+
+配置如上，现在通过nginx反向代理了域名hahaha.com，代理端口为（8091）[此处不能为80否则会与nginx服务端口冲突]，
+所以通过hahaha.com就可以访问到本机的80端口，hahaha.com：8091则是访问本机的8091端口。
+再看location中对路径做了映射，将hahaha.com:8091/predict映射到本机的8081端口
+[此处配置有个细节：location proxy_pass末尾的/都不能少，
+若是location少了/,那么api404，若是proxy_pass少了/那么整个hahaha.com:8091/predict直接404 ]

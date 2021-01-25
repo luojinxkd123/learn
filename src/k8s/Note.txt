@@ -1,0 +1,35 @@
+步骤：
+1、maven打包代码
+mvn clean package -DskipTests -Dmaven.compile.fork=true docker:build -DpushImage
+
+打tag：docker tag student-back 172.16.170.135:5000/zhsz/tjfsu-test/student-back
+push到仓库：docker push 172.16.170.135:5000/zhsz/tjfsu-test/student-back
+
+一、组件
+1、controller-manager:
+    (1)、故障检测和恢复
+    (2)、负责执行集群内的控制器：
+        副本控制器-Replication Controller(简称RC) （检查副本和实际pod数量是否一致,并维护）
+        节点控制器-Node Controller
+        资源配额控制器-ResourceQuotaController-RQC
+        命名空间控制器-NameSpace Controller
+        服务器账号控制器-ServiceAccount Controller
+        令牌控制器-Token Controller
+        服务控制器-Service Controller
+        服务端点控制器-EndPoint Controller （定期连接Service和Pod，保证Service到Pod的映射总是最新的（实时更新））
+2、API-Server:
+    提供给pod，RC，Service的增删改查及watch等接口，属于k8s的总线系统，并且只有它可以与etcd通讯
+3、Scheduler:
+    资源调度器，缓存衣粉最新资源信息，通过算法，通过操作API-Server分发pod，再回写到etcd
+4、etcd：
+    存储配置信息，存储节点、pod、网络等信息
+5、Kubelet
+    每个node都会启动Kubelet,他会处理master节点下发的命令和任务（node/Minion节点上的管家）
+6、Proxy
+    Proxy主要从etcd获取Services和Endpoints的配置信息（也可以从file获取），
+    然后根据配置信息在Node上启动一个Proxy的进程并监听相应的服务端口，当外部请求发生时，
+    Proxy会根据Load Balancer将请求分发到后端正确的容器处理
+7、Pod和Container
+　　在Kubernetes系统中，调度的最小颗粒不是单纯的容器，而是抽象成一个Pod。
+    Pod是一个可以被创建、销毁、调度、管理的最小的部署单元，可以包括一个或一组容器。
+　　Container：容器，可以运行服务和程序。
