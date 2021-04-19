@@ -38,5 +38,8 @@ public class Test<T> {
         objects.stream().distinct().collect(ArrayList::new, List::add, (list1, list2) -> list1.addAll(list2));
         objects.stream().collect(Collectors.toList());
         //objects.stream().collect(Collectors.joining());
+
+        List<String> list = Arrays.asList("hello world","hello world hello ","hello hello world");
+        list.stream().map(item -> item.split(" ")).flatMap(Arrays::stream).forEach(System.out::println);
     }
 }
